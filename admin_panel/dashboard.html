@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <h1>Admin - Orders</h1>
+    {% for order in orders %}
+        <div>
+            <p>Table: {{ order['table_id'] }}, Item: {{ order['item'] }}, Status: {{ order['status'] }}</p>
+        </div>
+    {% endfor %}
+</body>
+</html>
