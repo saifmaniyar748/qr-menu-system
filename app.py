@@ -1,37 +1,45 @@
 from flask import Flask, render_template, request, redirect
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
+db = SQLAlchemy(app)
 
-menu_items = [
-    {'id': 1, 'name': 'Paneer Butter Masala', 'price': 180},
-    {'id': 2, 'name': 'Chicken Biryani', 'price': 220},
-    {'id': 3, 'name': 'Veg Fried Rice', 'price': 150},
-    {'id': 4, 'name': 'Masala Dosa', 'price': 100}
-]
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    table_number = db.Column(db.String(10), nullable=False)
+    items = db.Column(db.String(500), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-orders = []
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
+menu_items = ["Pizza", "Burger", "Pasta", "Fries", "Salad", "Soda"]
 
 @app.route('/')
-def index():
+def home():
     return redirect('/table/1')
 
-@app.route('/table/<int:table_id>')
-def table_home(table_id):
-    return render_template('index.html', table_id=table_id)
+@app.route('/table/<int:table_number>')
+def table_menu(table_number):
+    return render_template('menu.html', table_number=table_number, menu=menu_items)
 
-@app.route('/menu/<int:table_id>', methods=['GET', 'POST'])
-def menu(table_id):
-    if request.method == 'POST':
-        item_id = int(request.form['item_id'])
-        item = next((item for item in menu_items if item['id'] == item_id), None)
-        if item:
-            orders.append({'table_id': table_id, 'item': item['name'], 'status': 'Ordered'})
-        return redirect(f'/menu/{table_id}')
-    return render_template('menu.html', menu=menu_items)
+@app.route('/order', methods=['POST'])
+def order():
+    table_number = request.form['table']
+    selected_items = request.form.getlist('items')
+    items_str = ", ".join(selected_items)
+    new_order = Order(table_number=table_number, items=items_str)
+    db.session.add(new_order)
+    db.session.commit()
+    return render_template('order_success.html', table_number=table_number, items=selected_items)
 
 @app.route('/admin')
 def admin():
-    return render_template('dashboard.html', orders=orders)
+    all_orders = Order.query.order_by(Order.timestamp.desc()).all()
+    return render_template('admin.html', orders=all_orders)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-
