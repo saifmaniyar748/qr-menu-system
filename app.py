@@ -6,6 +6,10 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
 db = SQLAlchemy(app)
 
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     table_number = db.Column(db.String(10), nullable=False)
